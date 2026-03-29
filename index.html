@@ -15,11 +15,13 @@
             overflow: hidden; touch-action: none;
         }
         #gameContainer {
-            position: relative; width: 800px; height: 480px;
+            position: relative;
+            width: min(90vh * 800 / 480, 90vw);
+            height: min(90vh, 90vw * 480 / 800);
             border: 4px solid #8B4513; box-shadow: 0 0 20px rgba(0,0,0,0.3);
             background: #000; overflow: hidden;
         }
-        canvas { display: block; width: 800px; height: 480px; will-change: transform; }
+        canvas { display: block; width: 100%; height: 100%; will-change: transform; }
         @media (max-width: 840px) {
             body { background: #000; }
             #gameContainer {
