@@ -4404,7 +4404,7 @@
                 let lastTime = 0;
                 const interval = 1000 / 60;
                 // Performance debug overlay (tap top-right corner 3x to toggle)
-                let _dbgTaps = 0, _dbgShow = false, _dbgFrames = [], _dbgLast = 0;
+                let _dbgTaps = 0, _dbgShow = false, _dbgFrames = [], _dbgLast = 0, _dbgText = null;
                 if (MOBILE) {
                     document.addEventListener('touchstart', (e) => {
                         const t = e.touches[0];
@@ -4431,7 +4431,9 @@
                             if (timestamp - _dbgLast > 500) {
                                 _dbgLast = timestamp;
                                 const avg = (k) => (_dbgFrames.reduce((s, f) => s + f[k], 0) / _dbgFrames.length).toFixed(1);
-                                const fps = (1000 / avg('delta')).toFixed(0);
+                                _dbgText = [`FPS:${(1000 / avg('delta')).toFixed(0)} frame:${avg('total')}ms`, `update:${avg('update')}ms draw:${avg('draw')}ms`];
+                            }
+                            if (_dbgText) {
                                 const ctx = this.ctx;
                                 ctx.save();
                                 ctx.fillStyle = 'rgba(0,0,0,0.7)';
@@ -4439,8 +4441,8 @@
                                 ctx.fillStyle = '#0f0';
                                 ctx.font = '11px monospace';
                                 ctx.textAlign = 'left';
-                                ctx.fillText(`FPS:${fps} frame:${avg('total')}ms`, CONFIG.CANVAS_WIDTH - 195, CONFIG.CANVAS_HEIGHT - 35);
-                                ctx.fillText(`update:${avg('update')}ms draw:${avg('draw')}ms`, CONFIG.CANVAS_WIDTH - 195, CONFIG.CANVAS_HEIGHT - 20);
+                                ctx.fillText(_dbgText[0], CONFIG.CANVAS_WIDTH - 195, CONFIG.CANVAS_HEIGHT - 35);
+                                ctx.fillText(_dbgText[1], CONFIG.CANVAS_WIDTH - 195, CONFIG.CANVAS_HEIGHT - 20);
                                 ctx.restore();
                             }
                         }
