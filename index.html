@@ -19,7 +19,7 @@
             border: 4px solid #8B4513; box-shadow: 0 0 20px rgba(0,0,0,0.3);
             background: #000; overflow: hidden;
         }
-        canvas { display: block; width: 800px; height: 480px; }
+        canvas { display: block; width: 800px; height: 480px; will-change: transform; }
         @media (max-width: 840px) {
             body { background: #000; }
             #gameContainer {
@@ -2488,7 +2488,7 @@
                     }
                 }
             }
-            draw(ctx, cameraX) {
+            drawBackground(ctx, cameraX) {
                 if (this.levelNumber === 1) {
                     ctx.fillStyle = '#87CEEB';
                     ctx.fillRect(0, 0, CONFIG.CANVAS_WIDTH, CONFIG.CANVAS_HEIGHT);
@@ -3058,6 +3058,24 @@
                     ctx.fillRect(340, CONFIG.GROUND_Y + 2, 120, 1);
                     ctx.globalAlpha = 1;
                 }
+            }
+            draw(ctx, cameraX) {
+                // Background caching — only re-render when camera moves significantly
+                if (!this._bgCanvas) {
+                    this._bgCanvas = (typeof OffscreenCanvas !== 'undefined')
+                        ? new OffscreenCanvas(CONFIG.CANVAS_WIDTH, CONFIG.CANVAS_HEIGHT)
+                        : document.createElement('canvas');
+                    this._bgCanvas.width = CONFIG.CANVAS_WIDTH;
+                    this._bgCanvas.height = CONFIG.CANVAS_HEIGHT;
+                    this._bgCtx = this._bgCanvas.getContext('2d');
+                    this._bgCameraX = -9999;
+                }
+                if (Math.abs(cameraX - this._bgCameraX) > 2) {
+                    this._bgCtx.clearRect(0, 0, CONFIG.CANVAS_WIDTH, CONFIG.CANVAS_HEIGHT);
+                    this.drawBackground(this._bgCtx, cameraX);
+                    this._bgCameraX = cameraX;
+                }
+                ctx.drawImage(this._bgCanvas, 0, 0);
                 // Draw platforms with level-appropriate style
                 for (let platform of this.platforms) {
                     const screenX = platform.x - cameraX;
@@ -4440,8 +4458,8 @@
         }, { passive: false });
     }
 
-    // Prevent scrolling/zooming
-    document.addEventListener('touchmove', function(e) { e.preventDefault(); }, { passive: false });
+    // touch-action: none on body handles scroll/zoom prevention via CSS
+    // No JS touchmove preventDefault needed — it blocks the compositor thread
 })();
 </script>
 </body>
