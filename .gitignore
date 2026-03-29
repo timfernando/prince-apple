@@ -1,0 +1,11 @@
+node_modules/
+package.json
+package-lock.json
+game.js
+tests/
+e2e/
+vitest.config.js
+playwright.config.js
+prince-apple.html
+.claude/
+test-results/
