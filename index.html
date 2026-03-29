@@ -3112,12 +3112,17 @@
         class Game {
             constructor(canvas) {
                 this.canvas = canvas;
-                const isMobile = typeof window !== 'undefined' && 'ontouchstart' in window;
-                const scale = isMobile ? 1 : Math.min(window.devicePixelRatio || 1, 2);
-                canvas.width = CONFIG.CANVAS_WIDTH * scale;
-                canvas.height = CONFIG.CANVAS_HEIGHT * scale;
+                const container = canvas.parentElement;
+                const displayW = container ? container.clientWidth : CONFIG.CANVAS_WIDTH;
+                const displayH = container ? container.clientHeight : CONFIG.CANVAS_HEIGHT;
+                const dpr = window.devicePixelRatio || 1;
+                // Render at actual pixel dimensions — no CSS upscaling needed
+                canvas.width = Math.round(displayW * dpr);
+                canvas.height = Math.round(displayH * dpr);
+                canvas.style.width = displayW + 'px';
+                canvas.style.height = displayH + 'px';
                 this.ctx = canvas.getContext('2d', { alpha: false });
-                this.ctx.scale(scale, scale);
+                this.ctx.scale(canvas.width / CONFIG.CANVAS_WIDTH, canvas.height / CONFIG.CANVAS_HEIGHT);
                 this.gameState = 'title';
                 this.player = null;
                 this.level = null;
