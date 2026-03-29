@@ -97,10 +97,12 @@
         <button id="btnThrow">Z</button>
     </div>
 <script>
+        const MOBILE = typeof window !== 'undefined' && 'ontouchstart' in window;
         const CONFIG = {
             CANVAS_WIDTH: 800,
             CANVAS_HEIGHT: 480,
             FPS: 60,
+            BG_CACHE_THRESHOLD: MOBILE ? 12 : 2,
             GRAVITY: 0.5,
             PLAYER_SPEED: 4,
             PLAYER_JUMP_POWER: 13,
@@ -2506,28 +2508,27 @@
                     ctx.arc(700 - cameraX * 0.05, 55, 35, 0, Math.PI * 2);
                     ctx.fill();
                     ctx.globalAlpha = 1;
+                    // Hills — use coarser step on mobile (10px vs 5px)
+                    const hillStep = MOBILE ? 10 : 5;
                     ctx.globalAlpha = 0.55;
                     ctx.fillStyle = '#8CC8A0';
                     ctx.beginPath();
                     ctx.moveTo(0, 400);
-                    for (let i = 0; i <= CONFIG.CANVAS_WIDTH + 100; i += 5) {
+                    for (let i = 0; i <= CONFIG.CANVAS_WIDTH + 100; i += hillStep) {
                         const worldX = i + cameraX * 0.15;
-                        const hillY = 380 - Math.sin(worldX * 0.004) * 30 - Math.sin(worldX * 0.007) * 15;
-                        ctx.lineTo(i, hillY);
+                        ctx.lineTo(i, 380 - Math.sin(worldX * 0.004) * 30 - Math.sin(worldX * 0.007) * 15);
                     }
                     ctx.lineTo(CONFIG.CANVAS_WIDTH, 440);
                     ctx.lineTo(0, 440);
                     ctx.closePath();
                     ctx.fill();
-                    ctx.globalAlpha = 1;
                     ctx.globalAlpha = 0.5;
                     ctx.fillStyle = '#7ABF8E';
                     ctx.beginPath();
                     ctx.moveTo(0, 420);
-                    for (let nh = 0; nh <= CONFIG.CANVAS_WIDTH + 100; nh += 5) {
+                    for (let nh = 0; nh <= CONFIG.CANVAS_WIDTH + 100; nh += hillStep) {
                         const worldX = nh + cameraX * 0.25;
-                        const hillY = 400 - Math.sin(worldX * 0.006) * 20 - Math.sin(worldX * 0.01) * 10;
-                        ctx.lineTo(nh, hillY);
+                        ctx.lineTo(nh, 400 - Math.sin(worldX * 0.006) * 20 - Math.sin(worldX * 0.01) * 10);
                     }
                     ctx.lineTo(CONFIG.CANVAS_WIDTH, 440);
                     ctx.lineTo(0, 440);
@@ -2694,7 +2695,7 @@
                     ctx.fillStyle = '#DAA520';
                     ctx.beginPath();
                     ctx.moveTo(0, 380);
-                    for (let i = 0; i <= CONFIG.CANVAS_WIDTH + 100; i += 8) {
+                    for (let i = 0; i <= CONFIG.CANVAS_WIDTH + 100; i += (MOBILE ? 16 : 8)) {
                         const worldX = i + cameraX * 0.1;
                         const waveY = 360 - Math.sin(worldX * 0.008) * 25;
                         ctx.lineTo(i, waveY);
@@ -2754,7 +2755,7 @@
                     ctx.fillStyle = '#2d2d4e';
                     ctx.beginPath();
                     ctx.moveTo(0, 380);
-                    for (let i = 0; i <= CONFIG.CANVAS_WIDTH + 100; i += 5) {
+                    for (let i = 0; i <= CONFIG.CANVAS_WIDTH + 100; i += (MOBILE ? 10 : 5)) {
                         const worldX = i + cameraX * 0.1;
                         const hillY = 360 - Math.sin(worldX * 0.005) * 25 - Math.sin(worldX * 0.008) * 15;
                         ctx.lineTo(i, hillY);
@@ -2834,20 +2835,27 @@
                     // Level 4: The Dungeon
                     ctx.fillStyle = '#0d0d15';
                     ctx.fillRect(0, 0, CONFIG.CANVAS_WIDTH, CONFIG.CANVAS_HEIGHT);
-                    // Stone wall texture
-                    ctx.globalAlpha = 0.15;
-                    ctx.fillStyle = '#333344';
-                    for (let row = 0; row < 12; row++) {
-                        for (let col = 0; col < 20; col++) {
-                            const bx = col * 45 + (row % 2) * 22 - (cameraX * 0.05) % 45;
-                            const by = row * 40;
-                            ctx.fillRect(bx, by, 43, 38);
-                            ctx.fillStyle = '#0d0d15';
-                            ctx.fillRect(bx + 43, by, 2, 40);
-                            ctx.fillRect(bx, by + 38, 45, 2);
-                            ctx.fillStyle = '#333344';
+                    // Stone wall texture (cached)
+                    if (!this._wallCache) {
+                        this._wallCache = document.createElement('canvas');
+                        this._wallCache.width = CONFIG.CANVAS_WIDTH + 45;
+                        this._wallCache.height = CONFIG.CANVAS_HEIGHT;
+                        const wc = this._wallCache.getContext('2d');
+                        wc.fillStyle = '#333344';
+                        for (let row = 0; row < 12; row++) {
+                            for (let col = 0; col < 21; col++) {
+                                const bx = col * 45 + (row % 2) * 22;
+                                const by = row * 40;
+                                wc.fillRect(bx, by, 43, 38);
+                                wc.fillStyle = '#0d0d15';
+                                wc.fillRect(bx + 43, by, 2, 40);
+                                wc.fillRect(bx, by + 38, 45, 2);
+                                wc.fillStyle = '#333344';
+                            }
                         }
                     }
+                    ctx.globalAlpha = 0.15;
+                    ctx.drawImage(this._wallCache, -(cameraX * 0.05) % 45, 0);
                     ctx.globalAlpha = 1;
                     // Dripping water effects
                     ctx.globalAlpha = 0.4;
@@ -2939,20 +2947,27 @@
                     // Level 5: The Throne Room
                     ctx.fillStyle = '#1a0a0a';
                     ctx.fillRect(0, 0, CONFIG.CANVAS_WIDTH, CONFIG.CANVAS_HEIGHT);
-                    // Stone wall with red tint
-                    ctx.globalAlpha = 0.12;
-                    ctx.fillStyle = '#442222';
-                    for (let row = 0; row < 12; row++) {
-                        for (let col = 0; col < 20; col++) {
-                            const bx = col * 45 + (row % 2) * 22;
-                            const by = row * 40;
-                            ctx.fillRect(bx, by, 43, 38);
-                            ctx.fillStyle = '#1a0a0a';
-                            ctx.fillRect(bx + 43, by, 2, 40);
-                            ctx.fillRect(bx, by + 38, 45, 2);
-                            ctx.fillStyle = '#442222';
+                    // Stone wall with red tint (cached)
+                    if (!this._wallCacheL5) {
+                        this._wallCacheL5 = document.createElement('canvas');
+                        this._wallCacheL5.width = CONFIG.CANVAS_WIDTH;
+                        this._wallCacheL5.height = CONFIG.CANVAS_HEIGHT;
+                        const wc = this._wallCacheL5.getContext('2d');
+                        wc.fillStyle = '#442222';
+                        for (let row = 0; row < 12; row++) {
+                            for (let col = 0; col < 20; col++) {
+                                const bx = col * 45 + (row % 2) * 22;
+                                const by = row * 40;
+                                wc.fillRect(bx, by, 43, 38);
+                                wc.fillStyle = '#1a0a0a';
+                                wc.fillRect(bx + 43, by, 2, 40);
+                                wc.fillRect(bx, by + 38, 45, 2);
+                                wc.fillStyle = '#442222';
+                            }
                         }
                     }
+                    ctx.globalAlpha = 0.12;
+                    ctx.drawImage(this._wallCacheL5, 0, 0);
                     ctx.globalAlpha = 1;
                     // Tall arched windows with red light
                     ctx.globalAlpha = 0.2;
@@ -3072,7 +3087,7 @@
                     this._bgCtx = this._bgCanvas.getContext('2d');
                     this._bgCameraX = -9999;
                 }
-                if (Math.abs(cameraX - this._bgCameraX) > 2) {
+                if (Math.abs(cameraX - this._bgCameraX) > CONFIG.BG_CACHE_THRESHOLD) {
                     this._bgCtx.clearRect(0, 0, CONFIG.CANVAS_WIDTH, CONFIG.CANVAS_HEIGHT);
                     this.drawBackground(this._bgCtx, cameraX);
                     this._bgCameraX = cameraX;
@@ -3162,8 +3177,38 @@
                 this.highScoreRank = -1;
                 this.highScoreChecked = false;
                 this.parTimes = { 1: 60, 2: 75, 3: 90, 4: 105, 5: 120 };
+                this._heartCache = this._buildHeartCache();
                 this.setupInput();
                 this.startGame();
+            }
+            _buildHeartCache() {
+                const size = 20;
+                const cache = {};
+                for (const [key, color] of [['full', '#FF3333'], ['empty', '#552222']]) {
+                    const c = document.createElement('canvas');
+                    c.width = size; c.height = size;
+                    const cx = c.getContext('2d');
+                    const hx = size / 2, hy = 4, s = 0.65;
+                    cx.fillStyle = color;
+                    cx.beginPath();
+                    cx.moveTo(hx, hy + 4 * s);
+                    cx.bezierCurveTo(hx, hy, hx + 9 * s, hy, hx + 9 * s, hy + 4 * s);
+                    cx.bezierCurveTo(hx + 9 * s, hy + 8 * s, hx, hy + 14 * s, hx, hy + 14 * s);
+                    cx.fill();
+                    cx.beginPath();
+                    cx.moveTo(hx, hy + 4 * s);
+                    cx.bezierCurveTo(hx, hy, hx - 9 * s, hy, hx - 9 * s, hy + 4 * s);
+                    cx.bezierCurveTo(hx - 9 * s, hy + 8 * s, hx, hy + 14 * s, hx, hy + 14 * s);
+                    cx.fill();
+                    if (key === 'full') {
+                        cx.fillStyle = 'rgba(255, 255, 255, 0.4)';
+                        cx.beginPath();
+                        cx.arc(hx - 2, hy + 3, 1.5, 0, Math.PI * 2);
+                        cx.fill();
+                    }
+                    cache[key] = c;
+                }
+                return cache;
             }
             setupInput() {
                 window.addEventListener('keydown', (e) => {
@@ -4266,29 +4311,12 @@
                 ctx.font = 'bold 11px Arial';
                 ctx.textAlign = 'center';
                 ctx.fillText(levelNames[this.currentLevel], CONFIG.CANVAS_WIDTH / 2, 12);
-                // 3 hearts for current HP + lives counter
+                // 3 hearts for current HP + lives counter (cached to avoid bezierCurveTo per frame)
                 for (let i = 0; i < this.player.maxHp; i++) {
                     const hx = 12 + i * 15;
                     const hy = 20;
-                    const filled = i < this.player.hp;
-                    const s = 0.65;
-                    ctx.fillStyle = filled ? '#FF3333' : '#552222';
-                    ctx.beginPath();
-                    ctx.moveTo(hx, hy + 4 * s);
-                    ctx.bezierCurveTo(hx, hy, hx + 9 * s, hy, hx + 9 * s, hy + 4 * s);
-                    ctx.bezierCurveTo(hx + 9 * s, hy + 8 * s, hx, hy + 14 * s, hx, hy + 14 * s);
-                    ctx.fill();
-                    ctx.beginPath();
-                    ctx.moveTo(hx, hy + 4 * s);
-                    ctx.bezierCurveTo(hx, hy, hx - 9 * s, hy, hx - 9 * s, hy + 4 * s);
-                    ctx.bezierCurveTo(hx - 9 * s, hy + 8 * s, hx, hy + 14 * s, hx, hy + 14 * s);
-                    ctx.fill();
-                    if (filled) {
-                        ctx.fillStyle = 'rgba(255, 255, 255, 0.4)';
-                        ctx.beginPath();
-                        ctx.arc(hx - 2, hy + 3, 1.5, 0, Math.PI * 2);
-                        ctx.fill();
-                    }
+                    const img = i < this.player.hp ? this._heartCache.full : this._heartCache.empty;
+                    ctx.drawImage(img, hx - 10, hy - 2);
                 }
                 // Lives counter (x N) next to hearts
                 ctx.fillStyle = '#FFFFFF';
