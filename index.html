@@ -3691,7 +3691,11 @@
                     ctx.fillStyle = '#8B0000';
                     ctx.font = 'bold 16px Georgia, serif';
                     ctx.textAlign = 'center';
-                    ctx.fillText('~ Press SPACE to begin ~', W / 2, H - 15);
+                    ctx.fillText('~ Press SPACE to begin ~', W / 2, H - 30);
+                    ctx.globalAlpha = 0.6;
+                    ctx.fillStyle = '#DAA520';
+                    ctx.font = '11px Georgia, serif';
+                    ctx.fillText('A game by Eva & Tim Fernando, 2026', W / 2, H - 10);
                     ctx.globalAlpha = 1;
                 }
                 ctx.textAlign = 'left';
