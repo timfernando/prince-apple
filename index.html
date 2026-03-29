@@ -3033,7 +3033,11 @@
         class Game {
             constructor(canvas) {
                 this.canvas = canvas;
+                const scale = window.devicePixelRatio || 2;
+                canvas.width = CONFIG.CANVAS_WIDTH * scale;
+                canvas.height = CONFIG.CANVAS_HEIGHT * scale;
                 this.ctx = canvas.getContext('2d');
+                this.ctx.scale(scale, scale);
                 this.gameState = 'title';
                 this.player = null;
                 this.level = null;
