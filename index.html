@@ -3449,7 +3449,7 @@
                 const lx = bookX + 15;
                 const ly = bookY + 15;
                 const pw = bookW / 2 - 33;
-                const ph = bookH - 30;
+                const ph = Math.floor(bookH * 0.65);
                 // Illustration border
                 ctx.strokeStyle = '#C8A882';
                 ctx.lineWidth = 2;
@@ -3623,20 +3623,20 @@
                         ctx.fillText(storyLines[li], rx + rpw / 2, ry + 82 + li * 16);
                     }
                 }
-                // Controls section
+                // Controls section — on left page below illustration
                 if (t > 260) {
-                    const cy = ry + 275;
+                    const cy = ly + ph + 20;
                     const fadeIn = Math.min((t - 260) / 30, 1);
                     ctx.globalAlpha = fadeIn;
                     // Controls header
                     ctx.fillStyle = '#8B4513';
                     ctx.font = 'bold 11px Georgia, serif';
                     ctx.textAlign = 'center';
-                    ctx.fillText('~ How to Play ~', rx + rpw / 2, cy);
+                    ctx.fillText('~ How to Play ~', lx + pw / 2, cy);
                     // Arrow keys
                     ctx.fillStyle = '#5D4037';
                     ctx.font = '10px Georgia, serif';
-                    const ctrlX = rx + 12;
+                    const ctrlX = lx + 30;
                     // Left/Right arrows
                     ctx.strokeStyle = '#5D4037';
                     ctx.lineWidth = 1.5;
@@ -3680,7 +3680,7 @@
                     // Yarn ball icon
                     ctx.fillStyle = '#FF69B4';
                     ctx.beginPath();
-                    ctx.arc(ctrlX + rpw - 20, zY + 6, 5, 0, Math.PI * 2);
+                    ctx.arc(ctrlX + pw - 60, zY + 6, 5, 0, Math.PI * 2);
                     ctx.fill();
                     ctx.globalAlpha = 1;
                 }
@@ -3691,11 +3691,11 @@
                     ctx.fillStyle = '#8B0000';
                     ctx.font = 'bold 16px Georgia, serif';
                     ctx.textAlign = 'center';
-                    ctx.fillText('~ Press SPACE to begin ~', W / 2, bookY + bookH + 18);
+                    ctx.fillText('~ Press SPACE to begin ~', rx + rpw / 2, bookY + bookH - 35);
                     ctx.globalAlpha = 0.5;
-                    ctx.fillStyle = '#DAA520';
+                    ctx.fillStyle = '#8B6914';
                     ctx.font = '10px Georgia, serif';
-                    ctx.fillText('A game by Eva & Tim Fernando, 2026', W / 2, bookY + bookH + 33);
+                    ctx.fillText('A game by Eva & Tim Fernando, 2026', rx + rpw / 2, bookY + bookH - 18);
                     ctx.globalAlpha = 1;
                 }
                 ctx.textAlign = 'left';
