@@ -103,6 +103,8 @@
         <button id="btnJump">&#9650;</button>
         <button id="btnThrow">Z</button>
     </div>
+<script src="riffwave.js"></script>
+<script src="sfxr.js"></script>
 <script>
         const MOBILE = typeof window !== 'undefined' && 'ontouchstart' in window;
         const CONFIG = {
@@ -121,6 +123,99 @@
             LEVEL_WIDTH_5: 800,
             GROUND_Y: 440,
             GROUND_HEIGHT: 40
+        };
+        const soundManager = {
+            _defs: {},
+            _sfxr: null,
+            muted: false,
+            initialized: false,
+            init() {
+                if (this.initialized) return;
+                if (typeof jsfxr === 'undefined') return;
+                this.initialized = true;
+                this._sfxr = jsfxr.sfxr;
+                // wave_type: 0=square, 1=sawtooth, 2=sine, 3=noise
+                const d = (o) => Object.assign({ oldParams: true, p_env_attack: 0, p_freq_dramp: 0, p_vib_strength: 0, p_vib_speed: 0, p_arp_mod: 0, p_arp_speed: 0, p_duty: 0.5, p_duty_ramp: 0, p_repeat_speed: 0, p_pha_offset: 0, p_pha_ramp: 0, p_lpf_freq: 1, p_lpf_ramp: 0, p_lpf_resonance: 0, p_hpf_freq: 0, p_hpf_ramp: 0, sound_vol: 0.25, sample_rate: 44100, sample_size: 8 }, o);
+                // Jump: soft bouncy spring
+                this._defs.jump = d({ wave_type: 2, p_env_sustain: 0.08, p_env_punch: 0.15, p_env_decay: 0.15, p_base_freq: 0.38, p_freq_ramp: 0.25 });
+                // Throw: gentle whoosh
+                this._defs.throw = d({ wave_type: 2, p_env_sustain: 0.06, p_env_punch: 0.1, p_env_decay: 0.18, p_base_freq: 0.5, p_freq_ramp: -0.15, p_lpf_freq: 0.7 });
+                // Collect: happy chirpy ding
+                this._defs.collect = d({ wave_type: 0, p_env_sustain: 0.05, p_env_punch: 0.2, p_env_decay: 0.15, p_base_freq: 0.55, p_freq_ramp: 0.1, p_arp_mod: 0.4, p_arp_speed: 0.5 });
+                // Heal: warm gentle bell
+                this._defs.heal = d({ wave_type: 2, p_env_sustain: 0.15, p_env_punch: 0.1, p_env_decay: 0.35, p_base_freq: 0.45, p_freq_ramp: 0.08, p_vib_strength: 0.15, p_vib_speed: 0.4 });
+                // Powerup: sparkly ascending chime
+                this._defs.powerup = d({ wave_type: 0, p_env_sustain: 0.1, p_env_punch: 0.15, p_env_decay: 0.3, p_base_freq: 0.35, p_freq_ramp: 0.2, p_arp_mod: 0.5, p_arp_speed: 0.4, p_repeat_speed: 0.45 });
+                // Key: bright twinkle
+                this._defs.key = d({ wave_type: 0, p_env_sustain: 0.04, p_env_punch: 0.2, p_env_decay: 0.2, p_base_freq: 0.6, p_freq_ramp: 0.15, p_arp_mod: 0.35, p_arp_speed: 0.55 });
+                // Checkpoint: triumphant mini-fanfare
+                this._defs.checkpoint = d({ wave_type: 2, p_env_sustain: 0.1, p_env_punch: 0.2, p_env_decay: 0.35, p_base_freq: 0.35, p_freq_ramp: 0.15, p_arp_mod: 0.5, p_arp_speed: 0.4, p_repeat_speed: 0.4 });
+                // Hit: soft "oof"
+                this._defs.hit = d({ wave_type: 2, p_env_sustain: 0.05, p_env_punch: 0.15, p_env_decay: 0.15, p_base_freq: 0.35, p_freq_ramp: -0.25 });
+                // Enemy defeat: comical poof
+                this._defs.enemyDefeat = d({ wave_type: 0, p_env_sustain: 0.08, p_env_punch: 0.1, p_env_decay: 0.2, p_base_freq: 0.4, p_freq_ramp: -0.1, p_duty: 0.3, p_duty_ramp: -0.1 });
+                // Die: gentle sad descending
+                this._defs.die = d({ wave_type: 2, p_env_sustain: 0.2, p_env_punch: 0, p_env_decay: 0.5, p_base_freq: 0.32, p_freq_ramp: -0.15, p_vib_strength: 0.1, p_vib_speed: 0.3 });
+                // Boss hit: medium thump
+                this._defs.bossHit = d({ wave_type: 0, p_env_sustain: 0.08, p_env_punch: 0.25, p_env_decay: 0.2, p_base_freq: 0.22, p_freq_ramp: -0.12, p_lpf_freq: 0.6 });
+                // Boss phase: dramatic rumble
+                this._defs.bossPhase = d({ wave_type: 0, p_env_attack: 0.05, p_env_sustain: 0.2, p_env_punch: 0.1, p_env_decay: 0.35, p_base_freq: 0.18, p_freq_ramp: 0.1, p_vib_strength: 0.25, p_vib_speed: 0.45 });
+                // Boss defeat: celebratory burst
+                this._defs.bossDefeat = d({ wave_type: 0, p_env_sustain: 0.15, p_env_punch: 0.2, p_env_decay: 0.6, p_base_freq: 0.3, p_freq_ramp: 0.1, p_arp_mod: 0.4, p_arp_speed: 0.35, p_repeat_speed: 0.35 });
+                // Level complete: musical victory jingle
+                this._defs.levelComplete = d({ wave_type: 2, p_env_sustain: 0.15, p_env_punch: 0.2, p_env_decay: 0.45, p_base_freq: 0.32, p_freq_ramp: 0.12, p_arp_mod: 0.5, p_arp_speed: 0.35, p_repeat_speed: 0.45 });
+                // Select: soft blip
+                this._defs.select = d({ wave_type: 2, p_env_sustain: 0.03, p_env_punch: 0.1, p_env_decay: 0.08, p_base_freq: 0.5, p_freq_ramp: 0.05 });
+            },
+            play(id) {
+                if (this.muted || !this._sfxr || !this._defs[id]) return;
+                try { this._sfxr.toAudio(this._defs[id]).setVolume(0.3).play(); } catch(e) {}
+            },
+            // Music system
+            _music: {},
+            _currentTrack: null,
+            _musicVol: 0.35,
+            initMusic() {
+                if (Object.keys(this._music).length > 0) return;
+                const tracks = {
+                    title: 'music/Title-Hero\'s_First_Dawn.mp3',
+                    1: 'music/L1-Cobblestone_Sunrise.mp3',
+                    2: 'music/L2-bit_chiptune_adventurous_op.mp3',
+                    3: 'music/L3-Midnight_at_the_Thicket.mp3',
+                    4: 'music/L4-TheDungeon.mp3',
+                    5: 'music/L5-Level_—_The_Throne_Room_Bos.mp3'
+                };
+                for (const [key, src] of Object.entries(tracks)) {
+                    const a = new Audio(src);
+                    a.loop = true;
+                    a.volume = this._musicVol;
+                    this._music[key] = a;
+                }
+            },
+            playMusic(track) {
+                if (this._currentTrack === track) return;
+                this.stopMusic();
+                this._currentTrack = track;
+                const a = this._music[track];
+                if (a) {
+                    a.currentTime = 0;
+                    a.volume = this.muted ? 0 : this._musicVol;
+                    a.play().catch(() => {});
+                }
+            },
+            stopMusic() {
+                if (this._currentTrack != null && this._music[this._currentTrack]) {
+                    this._music[this._currentTrack].pause();
+                    this._music[this._currentTrack].currentTime = 0;
+                }
+                this._currentTrack = null;
+            },
+            toggle() {
+                this.muted = !this.muted;
+                if (this._currentTrack != null && this._music[this._currentTrack]) {
+                    this._music[this._currentTrack].volume = this.muted ? 0 : this._musicVol;
+                }
+            }
         };
         class Particle {
             constructor(x, y, vx, vy, color, life) {
@@ -261,6 +356,7 @@
                     const jumpPower = this.speedBoostTimer > 0 ? CONFIG.PLAYER_JUMP_POWER * 1.3 : CONFIG.PLAYER_JUMP_POWER;
                     this.vy = -jumpPower;
                     this.isGrounded = false;
+                    soundManager.play('jump');
                 }
                 this.vy += CONFIG.GRAVITY;
                 if (this.vy > 15) this.vy = 15;
@@ -1429,9 +1525,11 @@
                 if (this.hp <= 3 && this.phase < 3) {
                     this.phase = 3;
                     this.chargeSpeed = 5;
+                    soundManager.play('bossPhase');
                 } else if (this.hp <= 6 && this.phase < 2) {
                     this.phase = 2;
                     this.chargeSpeed = 4;
+                    soundManager.play('bossPhase');
                 }
                 // Face player
                 if (player.x < this.x) this.facing = -1;
@@ -1524,6 +1622,7 @@
                 for (let egg of this.eggs) {
                     if (egg.collidesWith(player) && player.invincibleTime <= 0) {
                         player.takeDamage();
+                        soundManager.play('hit');
                         egg.alive = false;
                         if (player.hp <= 0) player.respawn();
                     }
@@ -1532,9 +1631,11 @@
                 if (this.invincibleTime <= 0 && player.collidesWith(this)) {
                     if (player.vy > 0 && player.y + player.height - player.vy < this.y + this.height * 0.4) {
                         this.takeDamage(1, level);
+                        soundManager.play('bossHit');
                         player.bounceOffEnemy();
                     } else if (player.invincibleTime <= 0) {
                         player.takeDamage();
+                        soundManager.play('hit');
                         if (player.hp <= 0) player.respawn();
                     }
                 }
@@ -1543,6 +1644,7 @@
                     const ball = level.yarnBalls[i];
                     if (this.invincibleTime <= 0 && ball.collidesWith(this)) {
                         this.takeDamage(1, level);
+                        soundManager.play('bossHit');
                         level.yarnBalls.splice(i, 1);
                     }
                 }
@@ -1560,6 +1662,7 @@
                     this.defeated = true;
                     this.state = 'defeated';
                     this.vy = -5;
+                    soundManager.play('bossDefeat');
                 }
             }
             draw(ctx, cameraX) {
@@ -2314,8 +2417,10 @@
                             });
                             player.bounceOffEnemy();
                             enemy.hp = 0;
+                            soundManager.play('enemyDefeat');
                         } else if (player.invincibleTime <= 0) {
                             player.takeDamage();
+                            soundManager.play('hit');
                             if (player.hp <= 0) player.respawn();
                         }
                     }
@@ -2335,6 +2440,7 @@
                             });
                             item.collect();
                             itemsToRemove.push(i);
+                            soundManager.play('collect');
                         } else if (item instanceof MilkBottle) {
                             player.heal(1);
                             this.emitter.emit(item.x + item.width / 2, item.y + item.height / 2, 8, ['#FFD700', '#FFA500'], {
@@ -2343,6 +2449,7 @@
                             });
                             item.collect();
                             itemsToRemove.push(i);
+                            soundManager.play('heal');
                         }
                     }
                 }
@@ -2352,6 +2459,7 @@
                     const catnip = this.catnipBoxes[i];
                     if (!catnip.collected && catnip.collidesWith(player)) {
                         player.applyCatnipBoost();
+                        soundManager.play('powerup');
                         this.emitter.emit(catnip.x + catnip.width / 2, catnip.y + catnip.height / 2, 12, ['#52D97A', '#2ECC71', '#1FA04E'], {
                             min: 1,
                             max: 4
@@ -2376,6 +2484,7 @@
                                 max: 3
                             });
                             this.enemies[j].hp = 0;
+                            soundManager.play('enemyDefeat');
                             yarnBallsToRemove.push(i);
                             break;
                         }
@@ -2386,6 +2495,7 @@
                     if (!checkpoint.activated && checkpoint.collidesWith(player)) {
                         checkpoint.activated = true;
                         player.setCheckpoint(checkpoint.x, checkpoint.y - 30);
+                        soundManager.play('checkpoint');
                         this.emitter.emit(checkpoint.x + checkpoint.width / 2, checkpoint.y, 10, ['#FFD700', '#FFA500'], {
                             min: 1,
                             max: 3
@@ -2395,6 +2505,7 @@
                 for (let puddle of this.mudPuddles) {
                     if (player.x + player.width > puddle.x && player.x < puddle.x + puddle.width && player.y + player.height > puddle.y + 6 && player.y < puddle.y + 100) {
                         if (player.takeDamage()) {
+                            soundManager.play('hit');
                             this.emitter.emit(player.x + player.width / 2, player.y + player.height / 2, 8, ['#8B6914', '#A0826D'], {
                                 min: 1,
                                 max: 3
@@ -2412,6 +2523,7 @@
                 for (let spike of this.spikeTraps) {
                     if (spike.collidesWith(player) && player.invincibleTime <= 0) {
                         player.takeDamage();
+                        soundManager.play('hit');
                         if (player.hp <= 0) player.respawn();
                         else {
                             player.vy = -8;
@@ -2422,6 +2534,7 @@
                 for (let key of this.dungeonKeys) {
                     if (!key.collected && key.collidesWith(player)) {
                         key.collected = true;
+                        soundManager.play('key');
                         this.emitter.emit(key.x + 8, key.y + 10, 10, [key.color, '#FFFFFF', '#FFD700'], {
                             min: 1,
                             max: 3
@@ -3220,6 +3333,7 @@
             setupInput() {
                 window.addEventListener('keydown', (e) => {
                     this.keys[e.key] = true;
+                    if (e.key === 'm' || e.key === 'M') soundManager.toggle();
                     if (this.gameState === 'highScoreEntry') {
                         if (e.key === 'Backspace') {
                             this.highScoreName = this.highScoreName.slice(0, -1);
@@ -3234,7 +3348,7 @@
                     if (e.key === 'z' || e.key === 'Z' || e.key === 'ArrowUp') {
                         if (this.gameState === 'playing' && this.player) {
                             const ball = this.player.throwYarnBall();
-                            if (ball) this.level.yarnBalls.push(ball);
+                            if (ball) { this.level.yarnBalls.push(ball); soundManager.play('throw'); }
                         }
                     }
                 });
@@ -3256,6 +3370,7 @@
                 this.enemiesDefeated = 0;
                 this.levelTimer = 0;
                 this.gameState = 'playing';
+                soundManager.playMusic(levelNumber);
             }
             loadHighScores() {
                 try {
@@ -3299,6 +3414,9 @@
                         this.score = 0;
                         this.highScoreChecked = false;
                         this.playerLives = 2;
+                        soundManager.init();
+                        soundManager.initMusic();
+                        soundManager.play('select');
                         this.showLevelIntro(1);
                     }
                 } else if (this.gameState === 'levelIntro') {
@@ -3317,6 +3435,8 @@
                     const levelStatus = this.level.update(this.player);
                     if (levelStatus === 'victory') {
                         this.gameState = 'victoryCutscene';
+                        soundManager.play('levelComplete');
+                        soundManager.stopMusic();
                         this.score += this.player.hp * 100;
                         const timeSecs = Math.floor(this.levelTimer / 60);
                         const par = this.parTimes[this.currentLevel] || 90;
@@ -3328,6 +3448,7 @@
                         for (let e of this.level.enemies) { e.fleeing = true; }
                     } else if (levelStatus === 'gateCutscene') {
                         this.gameState = 'gateCutscene';
+                        soundManager.play('levelComplete');
                         this.gateCutsceneTimer = 0;
                         this.gateCutscenePhase = 'walkToGate';
                         this.score += this.player.hp * 50;
@@ -3348,6 +3469,8 @@
                     if (this.player.dead) {
                         this.gameState = 'gameOver';
                         this.gameOverTimer = 0;
+                        soundManager.play('die');
+                        soundManager.stopMusic();
                     }
                     const currentEnemies = this.level.enemies.length;
                     const totalEnemies = this.currentLevel === 1 ? 4 : this.currentLevel === 4 ? 6 : this.currentLevel === 5 ? 0 : 5;
@@ -3415,6 +3538,7 @@
                             this.gameState = 'title';
                             this.titleTimer = 0;
                             this.currentLevel = 1;
+                            soundManager.playMusic('title');
                         }
                     }
                 } else if (this.gameState === 'gameOver') {
@@ -3425,6 +3549,7 @@
                         this.gameState = 'title';
                         this.titleTimer = 0;
                         this.currentLevel = 1;
+                        soundManager.playMusic('title');
                     }
                 } else if (this.gameState === 'victoryCutscene') {
                     this.cutsceneTimer++;
@@ -3494,6 +3619,7 @@
                         this.titleTimer = 0;
                         this.currentLevel = 1;
                         this.highScoreChecked = false;
+                        soundManager.playMusic('title');
                     }
                 }
             }
@@ -4493,7 +4619,7 @@
             btn.classList.add('pressed');
             if (window.game && window.game.gameState === 'playing' && window.game.player) {
                 var ball = window.game.player.throwYarnBall();
-                if (ball) window.game.level.yarnBalls.push(ball);
+                if (ball) { window.game.level.yarnBalls.push(ball); soundManager.play('throw'); }
             }
         }
         function release(e) {
@@ -4512,6 +4638,8 @@
 
     // Tap canvas for space key (title/menus)
     document.getElementById('gameCanvas').addEventListener('touchstart', function(e) {
+        soundManager.init();
+        soundManager.initMusic();
         if (window.game && window.game.gameState !== 'playing') {
             e.preventDefault();
             if (window.game) window.game.keys[' '] = true;
